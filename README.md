@@ -50,7 +50,8 @@ Deploy the backend and frontend as separate Render services, and provision a hos
 - Root directory: `Backend`
 - Build command: `npm install`
 - Start command: `npm start`
-- Environment variables: `PORT` (Render supplies this), `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and `FRONTEND_URL` (the deployed frontend origin, without a trailing slash).
+- Environment variables: `PORT` (Render supplies this), `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and `FRONTEND_URL` (the deployed frontend origin, without a trailing slash).
+- For Railway MySQL, enable its public TCP Proxy and use the proxy's public hostname and assigned port for `DB_HOST` and `DB_PORT`. Do not use Railway's private/internal hostname from Render.
 - Run `Backend/database/schema.sql` against the hosted MySQL database, then run `npm run seed` from the Backend directory only if all eight tables are empty.
 - After the first deploy, set `FRONTEND_URL` to the static-site URL and redeploy the API.
 
