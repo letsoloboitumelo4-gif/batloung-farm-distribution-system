@@ -11,7 +11,7 @@ const currencyFields = new Set(['small_price', 'medium_price', 'large_price'])
 
 function displayValue(key, value) {
   if (value === null || value === undefined || value === '') return '—'
-  if (key === 'status') return value === 'active' ? 'Available' : 'Inactive'
+  if (key === 'status') return value === 'active' ? 'Available' : 'Unavailable'
   if (currencyFields.has(key)) {
     return `M ${Number(value).toLocaleString('en-LS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }

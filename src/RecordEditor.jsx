@@ -44,7 +44,7 @@ export default function RecordEditor({ editor, onClose, onSave }) {
       <form onSubmit={submit}>
         {fields.map(([key, label, kind, required]) => <label className="field" key={key}><span>{label}</span>
           {kind === 'province' ? <select value={values[key]} required={required} onChange={(event) => update(key, event.target.value)}>{provinces.map((province) => <option key={province}>{province}</option>)}</select>
-            : kind === 'status' ? <select value={values[key]} required={required} onChange={(event) => update(key, event.target.value)}><option value="active">Available</option><option value="inactive">Inactive</option></select>
+            : kind === 'status' ? <select value={values[key]} required={required} onChange={(event) => update(key, event.target.value)}><option value="active">Available</option><option value="inactive">Unavailable</option></select>
               : kind === 'textarea' ? <textarea rows="3" value={values[key]} required={required} onChange={(event) => update(key, event.target.value)} />
                 : <input type={kind} min={kind === 'number' ? '0' : undefined} step={kind === 'number' ? '0.01' : undefined} value={values[key]} required={required} onChange={(event) => update(key, event.target.value)} />}
         </label>)}
