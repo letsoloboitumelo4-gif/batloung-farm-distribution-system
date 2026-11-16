@@ -19,8 +19,9 @@ services:
       - key: FRONTEND_URL
         value: https://batloung-farm-web.onrender.com
 
-  - type: static
+  - type: web
     name: batloung-farm-web
+    runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
