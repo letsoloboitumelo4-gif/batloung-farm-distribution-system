@@ -96,7 +96,7 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover { background: #fbfdf
 .empty-state > span { width: 34px; height: 34px; display: grid; place-items: center; margin-bottom: 8px; border-radius: 10px; color: #70906f; background: #edf4e9; font-size: 16px; }
 .empty-state strong { color: #5b6d60; font-size: 10px; }.empty-state p { margin-top: 5px; font-size: 9px; }
 .badge { display: inline-flex; align-items: center; padding: 4px 7px; border-radius: 20px; color: #627568; background: #eef2ed; font-size: 8px; font-weight: 700; text-transform: capitalize; }
-.badge.paid, .badge.active { color: #397047; background: #e9f5e8; }.badge.unpaid, .badge.warning { color: #a8672c; background: #fff1df; }.badge.partially_paid { color: #8c6b28; background: #fff6d8; }.badge.inactive { color: #7a8580; background: #edf0ed; }
+.badge.paid, .badge.active, .badge.available { color: #397047; background: #e9f5e8; }.badge.unpaid, .badge.warning { color: #a8672c; background: #fff1df; }.badge.partially_paid { color: #8c6b28; background: #fff6d8; }.badge.inactive { color: #7a8580; background: #edf0ed; }
 .row-actions { display: flex; align-items: center; gap: 7px; }
 .table-action { padding: 4px 6px; border: 0; border-radius: 5px; color: #397047; background: #eef6ec; font-size: 9px; font-weight: 600; }
 .table-action:hover { background: #e1efdc; }.table-action.danger { color: #a34f42; background: #fff0ed; }.table-action.danger:hover { background: #ffe2dc; }
