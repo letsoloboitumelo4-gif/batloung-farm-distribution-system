@@ -68,6 +68,27 @@ exports.getFruits = async (req, res) => {
     }
 };
 
+exports.getFruitById = async (req, res) => {
+    const fruitId = Number(req.params.id);
+    if (!Number.isInteger(fruitId) || fruitId < 1) {
+        return res.status(400).json({ message: 'Fruit ID must be a positive integer.' });
+    }
+
+    try {
+        const [fruits] = await db.query(
+            'SELECT * FROM fruits WHERE fruit_id = ?',
+            [fruitId]
+        );
+        if (fruits.length === 0) {
+            return res.status(404).json({ message: 'Fruit not found.' });
+        }
+        res.status(200).json(fruits[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to retrieve fruit.' });
+    }
+};
+
 exports.updateFruit = async (req, res) => {
     const fruitId = Number(req.params.id);
     if (!Number.isInteger(fruitId) || fruitId < 1) {

@@ -20,6 +20,27 @@ exports.getVendors = async (req, res) => {
     }
 };
 
+exports.getVendorById = async (req, res) => {
+    const vendorId = Number(req.params.id);
+    if (!Number.isInteger(vendorId) || vendorId < 1) {
+        return res.status(400).json({ message: 'Vendor ID must be a positive integer.' });
+    }
+
+    try {
+        const [vendors] = await db.query(
+            'SELECT * FROM vendors WHERE vendor_id = ?',
+            [vendorId]
+        );
+        if (vendors.length === 0) {
+            return res.status(404).json({ message: 'Vendor not found.' });
+        }
+        res.status(200).json(vendors[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to retrieve vendor.' });
+    }
+};
+
 exports.addVendor = async (req, res) => {
     try {
         const { vendor_name, phone_number, location, registration_date } = req.body;
