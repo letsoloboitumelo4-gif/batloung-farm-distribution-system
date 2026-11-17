@@ -83,11 +83,11 @@ function App() {
     return () => { active = false }
   }, [])
 
-  const activeFruits = data.fruits.filter((fruit) => fruit.status === 'active')
-  const revenueTotal = useMemo(() => data.sales.reduce((sum, sale) => sum + Number(sale.total_amount || 0), 0), [data.sales])
-  const outstandingTotal = useMemo(() => data.balances.reduce((sum, vendor) => sum + Number(vendor.outstanding_balance || 0), 0), [data.balances])
-  const lowStock = data.stock.filter((item) => Number(item.available_quantity) <= 10)
-  const openSales = data.sales.filter((sale) => Number(sale.total_amount) > Number(sale.amount_paid))
+const activeFruits = (data.fruits || []).filter((fruit) => fruit.status === 'active')
+const revenueTotal = useMemo(() => (data.sales || []).reduce((sum, sale) => sum + Number(sale.total || 0), 0), [data.sales])
+const outstandingTotal = useMemo(() => (data.balances || []).reduce((sum, b) => sum + Number(b.balance || 0), 0), [data.balances])
+const lowStock = (data.stock || []).filter((item) => Number(item.available || 0) < 10)
+const openSales = (data.sales || []).filter((sale) => Number(sale.total || 0) > 0)
 
   function showNotice(type, text) {
     setNotice({ type, text })
