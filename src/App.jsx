@@ -134,7 +134,7 @@ function App() {
 
   async function search(event) {
     event.preventDefault()
-    try { setVendorResults(asArray(await api(`/vendors/search?q=${encodeURIComponent(vendorSearch)}`)))) }
+    try { setVendorResults(asArray(await api(`/vendors/search?q=${encodeURIComponent(vendorSearch)}`))) }
     catch (error) { showNotice('error', error.message) }
   }
 
