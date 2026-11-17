@@ -13,7 +13,7 @@ button { cursor: pointer; }
 .brand span { margin-top: 3px; color: #a4b8aa; font-size: 10px; }
 .nav-caption { margin: 38px 11px 11px; color: #829b8c; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; }
 .side-nav { display: grid; gap: 4px; }
-.nav-item { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border: 0; border-radius: 9px; color: #c1d0c5; background: transparent; text-align: left; font-size: 12px; transition: background .15s, color .15s; }
+.nav-item { width: 100%; min-height: 42px; display: flex; align-items: center; gap: 12px; padding: 0 12px; border: 0; border-radius: 9px; color: #c1d0c5; background: transparent; text-align: center; font-size: 12px; transition: background .15s, color .15s; }
 .nav-item:hover { color: #fff; background: #234a37; }
 .nav-item.selected { color: #eff8df; background: #2b5940; font-weight: 600; }
 .nav-icon { width: 19px; color: #b6d69d; font-size: 16px; text-align: center; }
