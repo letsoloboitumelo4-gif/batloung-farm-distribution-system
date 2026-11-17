@@ -82,12 +82,16 @@ function App() {
     void loadInitialData()
     return () => { active = false }
   }, [])
+const fruitsList = Array.isArray(data.fruits) ? data.fruits : []
+const salesList = Array.isArray(data.sales) ? data.sales : []
+const balancesList = Array.isArray(data.balances) ? data.balances : []
+const stockList = Array.isArray(data.stock) ? data.stock : []
 
-const activeFruits = (data.fruits || []).filter((fruit) => fruit.status === 'active')
-const revenueTotal = useMemo(() => (data.sales || []).reduce((sum, sale) => sum + Number(sale.total || 0), 0), [data.sales])
-const outstandingTotal = useMemo(() => (data.balances || []).reduce((sum, b) => sum + Number(b.balance || 0), 0), [data.balances])
-const lowStock = (data.stock || []).filter((item) => Number(item.available || 0) < 10)
-const openSales = (data.sales || []).filter((sale) => Number(sale.total || 0) > 0)
+const activeFruits = fruitsList.filter((fruit) => fruit.status === 'active')
+const revenueTotal = useMemo(() => salesList.reduce((sum, sale) => sum + Number(sale.total || 0), 0), [salesList])
+const outstandingTotal = useMemo(() => balancesList.reduce((sum, b) => sum + Number(b.balance || 0), 0), [balancesList])
+const lowStock = stockList.filter((item) => Number(item.available || 0) < 10)
+const openSales = salesList.filter((sale) => Number(sale.total || 0) > 0)
 
   function showNotice(type, text) {
     setNotice({ type, text })
