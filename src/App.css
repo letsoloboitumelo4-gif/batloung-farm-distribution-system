@@ -116,7 +116,14 @@ tbody tr:last-child td { border-bottom: 0; } tbody tr:hover { background: #fbfdf
 .size-label { color: #5f765f; text-transform: capitalize; }.quantity-low { color: #bd7134; }.quantity-good { color: #3e7848; }
 .report-filter { margin-bottom: 16px; padding: 13px 16px; }.report-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; }.highlight-report { min-height: 142px; display: flex; flex-direction: column; justify-content: center; padding: 20px; }.highlight-report > strong { margin-top: 10px; color: #294c34; font-family: Manrope, sans-serif; font-size: 27px; }.highlight-report > p { margin-top: 6px; color: #859188; font-size: 9px; }.highlight-report > small { margin-top: 10px; color: #a0aaa2; font-size: 9px; }.highlight-report .report-vendor { font-size: 19px; }
 .payment-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 500px; margin: 0 0 17px; }.payment-stats .stat-card { min-height: 105px; }.payment-stats .stat-card > strong { font-size: 23px; }
-.form-hint { color: #98a39a; font-size: 9px; }.notice { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 11px 13px; border-radius: 8px; font-size: 10px; }.notice.success { color: #326b40; background: #eaf6e9; }.notice.error { color: #9c4a3e; background: #fff0ed; }.notice button { margin-left: auto; border: 0; color: inherit; background: none; font-size: 17px; }
+.form-hint { color: #98a39a; font-size: 9px; }
+.toast-confirm { display: grid; gap: 10px; max-width: 280px; }
+.toast-confirm p { margin: 0; color: #334439; font-size: 12px; line-height: 1.4; }
+.toast-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.toast-btn { min-height: 30px; padding: 0 10px; border: 0; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+.toast-btn-cancel { color: #4a6650; background: #eef2ed; }
+.toast-btn-danger { color: #fff; background: #b4533f; }
+.toast-btn-danger:hover { background: #9c4432; }
 .loading-bar { position: absolute; z-index: 2; top: 0; right: 40px; left: 40px; height: 2px; overflow: hidden; background: #dce8da; }.loading-bar::after { position: absolute; width: 35%; height: 100%; background: #498354; animation: loading 1s infinite ease-in-out; content: ''; }@keyframes loading { from { left: -35%; } to { left: 100%; } }
 .app-footer { display: flex; justify-content: space-between; padding: 13px 40px; border-top: 1px solid #e9eee8; color: #9aa59d; background: #fff; font-size: 8px; }
 @media (max-width: 1100px) { .sidebar { width: 220px; flex-basis: 220px; }.topbar, .page-content { padding-right: 26px; padding-left: 26px; }.app-footer { padding-right: 26px; padding-left: 26px; }.stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.content-grid { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); } }

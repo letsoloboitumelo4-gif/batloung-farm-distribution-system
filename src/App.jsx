@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import toast, { Toaster } from 'react-hot-toast'
 import './App.css'
 import RecordEditor from './RecordEditor.jsx'
 import RecordViewer from './RecordViewer.jsx'
@@ -40,10 +41,19 @@ function Field({ label, children }) {
   return <label className="field"><span>{label}</span>{children}</label>
 }
 
-function Table({ columns, rows, empty = 'Records will appear here when available.' }) {
+function Table({ columns, rows, empty = 'Records will appear here when available.', rowKey }) {
   const safeRows = asArray(rows)
   if (!safeRows.length) return <div className="empty-state"><span>▤</span><strong>No records yet</strong><p>{empty}</p></div>
-  return <div className="table-wrap"><table><thead><tr>{columns.map((col) => <th key={col.key}>{col.label}</th>)}</tr></thead><tbody>{safeRows.map((row, index) => <tr key={row[columns[0]?.key] ?? index}>{columns.map((col) => <td key={col.key}>{col.render ? col.render(row) : row[col.key] ?? '—'}</td>)}</tr>)}</tbody></table></div>
+  const resolveKey = (row, index) => {
+    if (typeof rowKey === 'function') return rowKey(row, index)
+    if (rowKey) return row[rowKey] ?? index
+    const id = row.stock_id ?? row.sale_id ?? row.purchase_id ?? row.supplier_id ?? row.vendor_id ?? row.fruit_id ?? row.id
+    if (id != null) return id
+    if (row.fruit_name && row.packaging_size) return `${row.fruit_name}-${row.packaging_size}`
+    const first = columns[0]?.key
+    return first != null && row[first] != null ? `${row[first]}-${index}` : index
+  }
+  return <div className="table-wrap"><table><thead><tr>{columns.map((col) => <th key={col.key}>{col.label}</th>)}</tr></thead><tbody>{safeRows.map((row, index) => <tr key={resolveKey(row, index)}>{columns.map((col) => <td key={col.key}>{col.render ? col.render(row) : row[col.key] ?? '—'}</td>)}</tr>)}</tbody></table></div>
 }
 
 function Title({ eyebrow, title, description, action }) {
@@ -54,7 +64,6 @@ function App() {
   const [section, setSection] = useState('Dashboard')
   const [data, setData] = useState({ suppliers: [], fruits: [], vendors: [], purchases: [], sales: [], stock: [], balances: [] })
   const [busy, setBusy] = useState(false)
-  const [notice, setNotice] = useState(null)
   const [vendorSearch, setVendorSearch] = useState('')
   const [vendorResults, setVendorResults] = useState(null)
   const [purchaseItems, setPurchaseItems] = useState([{ fruit_id: '', packaging_size: 'small', quantity: '', unit_cost: '' }])
@@ -75,7 +84,7 @@ function App() {
       ])
       setData({ suppliers: asArray(suppliers), fruits: asArray(fruits), vendors: asArray(vendors), purchases: asArray(purchases), sales: asArray(sales), stock: asArray(stock), balances: asArray(balances) })
     } catch (error) {
-      setNotice({ type: 'error', text: `${error.message}. Check that the backend and database are running.` })
+      toast.error(`${error.message}. Check that the backend and database are running.`)
     } finally { setBusy(false) }
   }, [])
 
@@ -89,7 +98,7 @@ function App() {
         ])
         if (active) setData({ suppliers: asArray(suppliers), fruits: asArray(fruits), vendors: asArray(vendors), purchases: asArray(purchases), sales: asArray(sales), stock: asArray(stock), balances: asArray(balances) })
       } catch (error) {
-        if (active) setNotice({ type: 'error', text: `${error.message}. Check that the backend and database are running.` })
+        if (active) toast.error(`${error.message}. Check that the backend and database are running.`)
       }
     }
     void loadInitialData()
@@ -115,27 +124,28 @@ function App() {
   const lowStock = stockList.filter((item) => getAvailable(item) < 10)
   const openSales = salesList.filter((sale) => String(sale.payment_status || '').toLowerCase() !== 'paid' && getSaleTotal(sale) > 0)
 
-  function showNotice(type, text) {
-    setNotice({ type, text })
-    window.setTimeout(() => setNotice(null), 4200)
-  }
-
   async function save(path, method, body, message) {
+    const loading = toast.loading('Saving...')
     try {
       const result = await api(path, { method, body: JSON.stringify(body) })
-      showNotice('success', result.message || message)
+      toast.success(result.message || message, { id: loading })
       await refresh()
       return true
     } catch (error) {
-      showNotice('error', error.message)
+      toast.error(error.message, { id: loading })
       return false
     }
   }
 
   async function search(event) {
     event.preventDefault()
-    try { setVendorResults(asArray(await api(`/vendors/search?q=${encodeURIComponent(vendorSearch)}`))) }
-    catch (error) { showNotice('error', error.message) }
+    const loading = toast.loading('Searching vendors...')
+    try {
+      setVendorResults(asArray(await api(`/vendors/search?q=${encodeURIComponent(vendorSearch)}`)))
+      toast.success('Search updated.', { id: loading })
+    } catch (error) {
+      toast.error(error.message, { id: loading })
+    }
   }
 
   function openEditor(type, record) {
@@ -145,24 +155,39 @@ function App() {
   async function viewRecord(type, record) {
     const collection = type === 'fruit' ? 'fruits' : `${type}s`
     const id = record[`${type}_id`]
+    const loading = toast.loading('Loading details...')
     try {
       const details = await api(`/${collection}/${id}`)
       setViewer({ type, record: details })
+      toast.dismiss(loading)
     } catch (error) {
-      showNotice('error', error.message)
+      toast.error(error.message, { id: loading })
     }
   }
 
+  function confirmToast(message, onConfirm) {
+    toast((t) => (
+      <div className="toast-confirm">
+        <p>{message}</p>
+        <div className="toast-confirm-actions">
+          <button type="button" className="toast-btn toast-btn-cancel" onClick={() => toast.dismiss(t.id)}>Cancel</button>
+          <button type="button" className="toast-btn toast-btn-danger" onClick={async () => { toast.dismiss(t.id); await onConfirm() }}>Delete</button>
+        </div>
+      </div>
+    ), { duration: Infinity })
+  }
+
   async function deleteSupplier(supplier) {
-    const confirmed = window.confirm(`Delete ${supplier.business_name}? Suppliers with recorded purchases cannot be deleted.`)
-    if (!confirmed) return
-    try {
-      const result = await api(`/suppliers/${supplier.supplier_id}`, { method: 'DELETE' })
-      showNotice('success', result.message)
-      await refresh()
-    } catch (error) {
-      showNotice('error', error.message)
-    }
+    confirmToast(`Delete ${supplier.business_name}? Suppliers with recorded purchases cannot be deleted.`, async () => {
+      const loading = toast.loading('Deleting supplier...')
+      try {
+        const result = await api(`/suppliers/${supplier.supplier_id}`, { method: 'DELETE' })
+        toast.success(result.message, { id: loading })
+        await refresh()
+      } catch (error) {
+        toast.error(error.message, { id: loading })
+      }
+    })
   }
 
   async function deleteRecord(type, record) {
@@ -171,19 +196,22 @@ function App() {
     const warning = type === 'fruit'
       ? 'Existing stock or transaction history may prevent deletion; consider marking the fruit unavailable instead.'
       : 'Vendors with recorded sales cannot be deleted.'
-    if (!window.confirm(`Delete ${label}? ${warning}`)) return
-    try {
-      const collection = type === 'fruit' ? 'fruits' : 'vendors'
-      const id = record[`${type}_id`]
-      const result = await api(`/${collection}/${id}`, { method: 'DELETE' })
-      showNotice('success', result.message)
-      await refresh()
-    } catch (error) {
-      showNotice('error', error.message)
-    }
+    confirmToast(`Delete ${label}? ${warning}`, async () => {
+      const loading = toast.loading(`Deleting ${type}...`)
+      try {
+        const collection = type === 'fruit' ? 'fruits' : 'vendors'
+        const id = record[`${type}_id`]
+        const result = await api(`/${collection}/${id}`, { method: 'DELETE' })
+        toast.success(result.message, { id: loading })
+        await refresh()
+      } catch (error) {
+        toast.error(error.message, { id: loading })
+      }
+    })
   }
 
   const runReports = useCallback(async () => {
+    const loading = toast.loading('Running reports...')
     try {
       const [topFruits, revenue, topVendor] = await Promise.all([
         api('/reports/top-fruits'),
@@ -191,7 +219,10 @@ function App() {
         api('/reports/top-vendor'),
       ])
       setReports({ topFruits: asArray(topFruits), revenue, topVendor })
-    } catch (error) { showNotice('error', error.message) }
+      toast.success('Reports updated.', { id: loading })
+    } catch (error) {
+      toast.error(error.message, { id: loading })
+    }
   }, [range])
 
   const closeForm = () => setFormModal(false)
@@ -237,11 +268,11 @@ function App() {
   }
 
   function renderStock() {
-    return <><Title eyebrow="INVENTORY" title="Stock levels" description="Track boxes by fruit and package size. Low stock is 10 boxes or fewer." action={<button className="button button-outline" onClick={refresh}>↻ Refresh stock</button>} /><section className="panel"><Table columns={[{ key: 'fruit_name', label: 'Fruit' }, { key: 'packaging_size', label: 'Package size', render: (row) => <span className="size-label">{row.packaging_size}</span> }, { key: 'available_quantity', label: 'Available boxes', render: (row) => <strong className={Number(row.available_quantity) <= 10 ? 'quantity-low' : 'quantity-good'}>{row.available_quantity}</strong> }, { key: 'stock_id', label: 'Status', render: (row) => Number(row.available_quantity) <= 10 ? <span className="badge warning">Low stock</span> : <span className="badge active">In stock</span> }]} rows={stockList} empty="Stock will appear after you add fruits and record purchases." /></section></>
+    return <><Title eyebrow="INVENTORY" title="Stock levels" description="Track boxes by fruit and package size. Low stock is 10 boxes or fewer." action={<button className="button button-outline" onClick={refresh}>↻ Refresh stock</button>} /><section className="panel"><Table columns={[{ key: 'fruit_name', label: 'Fruit' }, { key: 'packaging_size', label: 'Package size', render: (row) => <span className="size-label">{row.packaging_size}</span> }, { key: 'available_quantity', label: 'Available boxes', render: (row) => <strong className={Number(row.available_quantity) <= 10 ? 'quantity-low' : 'quantity-good'}>{row.available_quantity}</strong> }, { key: 'stock_status', label: 'Status', render: (row) => Number(row.available_quantity) <= 10 ? <span className="badge warning">Low stock</span> : <span className="badge active">In stock</span> }]} rows={stockList} rowKey={(row, index) => row.stock_id ?? `${row.fruit_name}-${row.packaging_size}-${index}`} empty="Stock will appear after you add fruits and record purchases." /></section></>
   }
 
   function renderReports() {
-    return <><Title eyebrow="INSIGHTS" title="Reports" description="Understand sales performance, popular fruit, and vendor balances." /><section className="panel report-filter"><form className="search-form" onSubmit={(event) => { event.preventDefault(); void runReports() }}><Field label="From"><input type="date" value={range.start_date} onChange={(event) => setRange({ ...range, start_date: event.target.value })} required /></Field><Field label="To"><input type="date" value={range.end_date} onChange={(event) => setRange({ ...range, end_date: event.target.value })} required /></Field><button className="button button-primary">Run reports</button></form></section><div className="report-grid"><section className="panel"><div className="panel-heading"><div><h3>Top-selling fruits</h3><p>Ranked by boxes sold</p></div></div><Table columns={[{ key: 'fruit_name', label: 'Fruit' }, { key: 'boxes_sold', label: 'Boxes sold' }]} rows={asArray(reports.topFruits)} empty="Sales data will populate this report." /></section><section className="panel highlight-report"><span className="eyebrow">SALES REVENUE</span><strong>{currency(reports.revenue?.total_sales_revenue)}</strong><p>{reports.revenue?.start_date || range.start_date} — {reports.revenue?.end_date || range.end_date}</p><small>{reports.revenue?.sales_count || 0} sales in this period</small></section><section className="panel highlight-report"><span className="eyebrow">TOP VENDOR BY BOXES</span><strong className="report-vendor">{reports.topVendor?.vendor_name || 'No sales yet'}</strong><p>{reports.topVendor ? `${reports.topVendor.boxes_purchased} boxes purchased` : 'Vendor ranking appears after sales are recorded.'}</p></section><section className="panel"><div className="panel-heading"><div><h3>Outstanding balances</h3><p>Total across vendors: {currency(outstandingTotal)}</p></div></div><Table columns={[{ key: 'vendor_name', label: 'Vendor' }, { key: 'phone_number', label: 'Phone' }, { key: 'outstanding_balance', label: 'Balance', render: (row) => currency(row.outstanding_balance) }]} rows={balancesList} empty="Vendor balances will appear here." /></section></div></>
+    return <><Title eyebrow="INSIGHTS" title="Reports" description="Understand sales performance, popular fruit, and vendor balances." /><section className="panel report-filter"><form className="search-form" onSubmit={(event) => { event.preventDefault(); void runReports() }}><Field label="From"><input type="date" value={range.start_date} onChange={(event) => setRange({ ...range, start_date: event.target.value })} required /></Field><Field label="To"><input type="date" value={range.end_date} onChange={(event) => setRange({ ...range, end_date: event.target.value })} required /></Field><button className="button button-primary">Run reports</button></form></section><div className="report-grid"><section className="panel"><div className="panel-heading"><div><h3>Top-selling fruits</h3><p>Ranked by boxes sold</p></div></div><Table columns={[{ key: 'fruit_name', label: 'Fruit' }, { key: 'boxes_sold', label: 'Boxes sold' }]} rows={asArray(reports.topFruits)} rowKey={(row, index) => row.fruit_id ?? row.fruit_name ?? index} empty="Sales data will populate this report." /></section><section className="panel highlight-report"><span className="eyebrow">SALES REVENUE</span><strong>{currency(reports.revenue?.total_sales_revenue)}</strong><p>{reports.revenue?.start_date || range.start_date} — {reports.revenue?.end_date || range.end_date}</p><small>{reports.revenue?.sales_count || 0} sales in this period</small></section><section className="panel highlight-report"><span className="eyebrow">TOP VENDOR BY BOXES</span><strong className="report-vendor">{reports.topVendor?.vendor_name || 'No sales yet'}</strong><p>{reports.topVendor ? `${reports.topVendor.boxes_purchased} boxes purchased` : 'Vendor ranking appears after sales are recorded.'}</p></section><section className="panel"><div className="panel-heading"><div><h3>Outstanding balances</h3><p>Total across vendors: {currency(outstandingTotal)}</p></div></div><Table columns={[{ key: 'vendor_name', label: 'Vendor' }, { key: 'phone_number', label: 'Phone' }, { key: 'outstanding_balance', label: 'Balance', render: (row) => currency(row.outstanding_balance) }]} rows={balancesList} rowKey={(row, index) => row.vendor_id ?? row.vendor_name ?? index} empty="Vendor balances will appear here." /></section></div></>
   }
 
   function renderPayments() {
@@ -250,7 +281,7 @@ function App() {
 
   const views = { Dashboard: renderDashboard, Suppliers: renderSuppliers, Fruits: renderFruits, Vendors: renderVendors, Purchases: renderPurchases, Sales: renderSales, Stock: renderStock, Reports: renderReports, Payments: renderPayments }
 
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">BF</div><div><strong>Batloung Farm</strong><span>Distribution system</span></div></div><div className="nav-caption">WORKSPACE</div><nav className="side-nav">{sections.map((label, index) => <button key={label} className={`nav-item ${section === label ? 'selected' : ''}`} onClick={() => navigateToSection(label)}><span className="nav-icon">{icons[index]}</span>{label}{label === 'Stock' && lowStock.length > 0 && <span className="nav-count">{lowStock.length}</span>}</button>)}</nav><div className="sidebar-footer"><div className="online-dot" />API connected<span>Farm workspace</span></div></aside><main className="main-area"><header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{section}</strong></div><div className="topbar-right"><button className="icon-button" onClick={refresh} title="Refresh data" aria-label="Refresh data">↻</button><div className="user-chip"><div className="avatar">A</div><div><strong>Administrator</strong><span>Farm manager</span></div></div></div></header><div className="page-content">{notice && <div className={`notice ${notice.type}`} role="status">{notice.type === 'success' ? '✓' : '!'} {notice.text}<button onClick={() => setNotice(null)} aria-label="Dismiss">×</button></div>}{busy && <div className="loading-bar" />}{views[section]?.()}</div>{editor && <RecordEditor editor={editor} onClose={() => setEditor(null)} onSave={(path, body) => save(path, 'PUT', body, 'Record updated.')} />}{viewer && <RecordViewer viewer={viewer} onClose={() => setViewer(null)} />}{formModal && <button className="form-scrim" onClick={closeForm} aria-label="Close form" />}{canCreate && <button className={`form-toggle ${formModal ? 'is-open' : ''}`} onClick={() => setFormModal((open) => !open)} aria-label={formModal ? 'Close form' : `Open ${section.toLowerCase()} form`} title={formModal ? 'Close form' : `Add ${section.toLowerCase()}`}>{formModal ? '×' : '+'}</button>}<footer className="app-footer"><span>© {currentYear} Batloung Farm</span><span>Fresh produce, thoughtfully distributed.</span></footer></main></div>
+  return <div className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">BF</div><div><strong>Batloung Farm</strong><span>Distribution system</span></div></div><div className="nav-caption">WORKSPACE</div><nav className="side-nav">{sections.map((label, index) => <button key={label} className={`nav-item ${section === label ? 'selected' : ''}`} onClick={() => navigateToSection(label)}><span className="nav-icon">{icons[index]}</span>{label}{label === 'Stock' && lowStock.length > 0 && <span className="nav-count">{lowStock.length}</span>}</button>)}</nav><div className="sidebar-footer"><div className="online-dot" />API connected<span>Farm workspace</span></div></aside><main className="main-area"><header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{section}</strong></div><div className="topbar-right"><button className="icon-button" onClick={refresh} title="Refresh data" aria-label="Refresh data">↻</button><div className="user-chip"><div className="avatar">A</div><div><strong>Administrator</strong><span>Farm manager</span></div></div></div></header><div className="page-content">{busy && <div className="loading-bar" />}{views[section]?.()}</div>{editor && <RecordEditor editor={editor} onClose={() => setEditor(null)} onSave={(path, body) => save(path, 'PUT', body, 'Record updated.')} />}{viewer && <RecordViewer viewer={viewer} onClose={() => setViewer(null)} />}{formModal && <button className="form-scrim" onClick={closeForm} aria-label="Close form" />}{canCreate && <button className={`form-toggle ${formModal ? 'is-open' : ''}`} onClick={() => setFormModal((open) => !open)} aria-label={formModal ? 'Close form' : `Open ${section.toLowerCase()} form`} title={formModal ? 'Close form' : `Add ${section.toLowerCase()}`}>{formModal ? '×' : '+'}</button>}<footer className="app-footer"><span>© {currentYear} Batloung Farm</span><span>Fresh produce, thoughtfully distributed.</span></footer><Toaster position="top-right" toastOptions={{ duration: 4200 }} /></main></div>
 }
 
 export default App
